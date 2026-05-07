@@ -16,6 +16,10 @@ setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 # Load outlier detection codes and auxiliary routines
 source("Code_Qmk.R")
+source("AtipTestv7_2.R")
+source("stahel_donoho_modified.R")
+
+kn.par = rbind(c(1,1,0,1,0,1), c(1,1,-1,-1/4,0,2), c(1,1,-1,0,0,2))
 
 ################################################
 # Application in Outlier Detection (Glass Data)
@@ -86,6 +90,15 @@ est.sn = mz.Cov(X, 2)
 mah.sn = mahalanobis(X, est.sn$m, est.sn$S)
 outl.sn = cut.Sn(mah.sn, ncol(X))
 
+## KASP
+outl.kasp = KurMain(scale(X), kn.par, mode.sim = 1)$lbl
+
+## SDE-SSD
+outl.SDESSD = as.numeric(stahel_donoho_estimator(scale(X), return_mah = T)$flag)
+outl.SDESSD[outl.SDESSD == 1] = 2
+outl.SDESSD[outl.SDESSD == 0] = 1
+outl.SDESSD[outl.SDESSD == 2] = 0
+
 Y2 = Y
 Y2[Y2 == 1] = 2
 Y2[Y2 == 7] = 1
@@ -94,6 +107,8 @@ confusionMatrix(as.factor(outl.qn.mz$Flag), as.factor(Y2))
 confusionMatrix(as.factor(outl.detmcd), as.factor(Y2))
 confusionMatrix(as.factor(outl.mm), as.factor(Y2))
 confusionMatrix(as.factor(outl.sn$Flag), as.factor(Y2))
+confusionMatrix(as.factor(outl.kasp), as.factor(Y2))
+confusionMatrix(as.factor(outl.SDESSD), as.factor(Y2))
 
 ### FIGURES 
 
@@ -145,6 +160,28 @@ pairs(X[,1:4], pch = mark, col = colores, horOdd = TRUE, diag.panel = panel.hist
       labels = c("Variable 1", "Variable 2", "Variable 3", "Variable 4"), cex.lab = 1.5, cex.axis = 2.0)
 par(xpd = TRUE)
 legend("topright", legend = c("MM-Cov\nOutliers","Data"), col = c("darkorange1","black"), pch = 19, box.lty = 1, horiz = FALSE, text.font = 1, cex = 1.4)
+par(xpd = FALSE)
+
+# KASP
+
+colores = rep("black", nrow(X)); colores[outl.kasp == 1] = "purple"
+mark = rep(20, nrow(X)); mark[outl.kasp == 1] = 19
+pairs(X[,1:4], pch = mark, col = colores, horOdd = TRUE, diag.panel = panel.hist, oma = c(3,3,7,16),
+      #main = "Scatterplot Matrix for First Four Variables: Glass-Identification Data",
+      labels = c("Variable 1", "Variable 2", "Variable 3", "Variable 4"), cex.lab = 1.5, cex.axis = 2.0)
+par(xpd = TRUE)
+legend("topright", legend = c("KASP\nOutliers","Data"), col = c("purple","black"), pch = 19, box.lty = 1, horiz = FALSE, text.font = 1, cex = 1.4)
+par(xpd = FALSE)
+
+# SDE-SSD
+
+colores = rep("black", nrow(X)); colores[outl.SDESSD == 1] = "gold3"
+mark = rep(20, nrow(X)); mark[outl.SDESSD == 1] = 19
+pairs(X[,1:4], pch = mark, col = colores, horOdd = TRUE, diag.panel = panel.hist, oma = c(3,3,7,16),
+      #main = "Scatterplot Matrix for First Four Variables: Glass-Identification Data",
+      labels = c("Variable 1", "Variable 2", "Variable 3", "Variable 4"), cex.lab = 1.5, cex.axis = 2.0)
+par(xpd = TRUE)
+legend("topright", legend = c("SDE-SSD\nOutliers","Data"), col = c("gold3","black"), pch = 19, box.lty = 1, horiz = FALSE, text.font = 1, cex = 1.4)
 par(xpd = FALSE)
 
 ################################
